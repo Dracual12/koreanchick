@@ -62,7 +62,7 @@ export const getMockTelegramWebApp = () => {
       isActive: true,
       isProgressVisible: false,
       setText: (text: string) => console.log('Mock MainButton setText:', text),
-      onClick: (callback: () => void) => console.log('Mock MainButton onClick'),
+      onClick: (_callback: () => void) => console.log('Mock MainButton onClick'),
       show: () => console.log('Mock MainButton show'),
       hide: () => console.log('Mock MainButton hide'),
       enable: () => console.log('Mock MainButton enable'),
@@ -72,7 +72,7 @@ export const getMockTelegramWebApp = () => {
     },
     BackButton: {
       isVisible: false,
-      onClick: (callback: () => void) => console.log('Mock BackButton onClick'),
+      onClick: (_callback: () => void) => console.log('Mock BackButton onClick'),
       show: () => console.log('Mock BackButton show'),
       hide: () => console.log('Mock BackButton hide')
     },
@@ -80,18 +80,36 @@ export const getMockTelegramWebApp = () => {
       impactOccurred: (style: 'light' | 'medium' | 'heavy') => console.log('Mock HapticFeedback impact:', style),
       notificationOccurred: (type: 'error' | 'success' | 'warning') => console.log('Mock HapticFeedback notification:', type),
       selectionChanged: () => console.log('Mock HapticFeedback selection')
+    },
+    CloudStorage: {
+      setItem: (key: string, value: string, callback?: (error: string | null, result?: boolean) => void) => {
+        localStorage.setItem(key, value);
+        if (callback) callback(null, true);
+      },
+      getItem: (key: string, callback: (error: string | null, result?: string) => void) => {
+        const value = localStorage.getItem(key);
+        callback(null, value || '');
+      },
+      getItems: (keys: string[], callback: (error: string | null, result?: Record<string, string>) => void) => {
+        const result: Record<string, string> = {};
+        keys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value) result[key] = value;
+        });
+        callback(null, result);
+      },
+      removeItem: (key: string, callback?: (error: string | null, result?: boolean) => void) => {
+        localStorage.removeItem(key);
+        if (callback) callback(null, true);
+      },
+      removeItems: (keys: string[], callback?: (error: string | null, result?: boolean) => void) => {
+        keys.forEach(key => localStorage.removeItem(key));
+        if (callback) callback(null, true);
+      },
+      getKeys: (callback: (error: string | null, result?: string[]) => void) => {
+        const keys = Object.keys(localStorage);
+        callback(null, keys);
+      }
     }
   };
-};
-
-// Инициализация мокового Telegram WebApp для разработки
-export const initMockTelegramWebApp = (): void => {
-  if (isDevelopment() && !window.Telegram?.WebApp) {
-    console.log('🚀 Инициализация мокового Telegram WebApp для разработки');
-    
-    // Создаем моковый объект Telegram
-    (window as any).Telegram = {
-      WebApp: getMockTelegramWebApp()
-    };
-  }
 };
