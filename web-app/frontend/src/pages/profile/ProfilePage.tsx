@@ -49,7 +49,7 @@ const ProfilePage: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Имя</label>
                   <p className="text-lg font-medium text-gray-900">
-                    {getFullName(user?.first_name, user?.last_name) || 'Не указано'}
+                    {getFullName(user || {}) || 'Не указано'}
                   </p>
                 </div>
                 

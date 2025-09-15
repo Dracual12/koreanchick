@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiResponse } from '../types';
-import { getInitData, isDevelopment } from './telegram';
+import { getInitData } from './telegram';
 
 // Базовый URL API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -14,10 +14,9 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Интерцептор для добавления Telegram initData к каждому запросу
+// Интерцептор для добавления Telegram initData
 api.interceptors.request.use(
   (config) => {
-    // Получаем initData из Telegram WebApp
     const initData = getInitData();
     if (initData) {
       config.headers['X-Telegram-Init-Data'] = initData;
@@ -35,43 +34,24 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    // Обработка ошибок
-    if (error.response?.status === 401) {
-      // Неавторизован - перенаправляем на страницу входа
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-    }
+    console.error('API Error:', error);
     return Promise.reject(error);
   }
 );
 
-// Функция для выполнения запросов
+// Базовые методы API
 export const apiClient = {
-  get: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-    const response = await api.get(url, config);
-    return response.data;
-  },
-  
-  post: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-    const response = await api.post(url, data, config);
-    return response.data;
-  },
-  
-  put: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-    const response = await api.put(url, data, config);
-    return response.data;
-  },
-  
-  delete: async <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-    const response = await api.delete(url, config);
-    return response.data;
-  },
-  
-  patch: async <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> => {
-    const response = await api.patch(url, data, config);
-    return response.data;
-  },
+  get: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    api.get(url, config).then(response => response.data),
+    
+  post: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    api.post(url, data, config).then(response => response.data),
+    
+  put: <T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    api.put(url, data, config).then(response => response.data),
+    
+  delete: <T = any>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    api.delete(url, config).then(response => response.data),
 };
 
 export default api;

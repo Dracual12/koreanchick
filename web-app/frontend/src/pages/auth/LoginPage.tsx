@@ -1,89 +1,67 @@
-import React, { useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getTelegramUser, isTelegramWebApp } from '../../utils/telegram';
 import { useAuthStore } from '../../stores/auth';
-import { getTelegramUser, initTelegramWebApp } from '../../utils/telegram';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, isLoading, error } = useAuthStore();
+  const { login } = useAuthStore();
 
-  useEffect(() => {
-    // Инициализируем Telegram WebApp
-    initTelegramWebApp();
-    
-    // Проверяем, есть ли пользователь Telegram
-    const telegramUser = getTelegramUser();
-    if (telegramUser) {
-      // Автоматически логинимся
-      handleLogin();
-    }
-  }, []);
-
-  const handleLogin = async () => {
+  const handleTelegramLogin = async () => {
+    setIsLoading(true);
     try {
-      await login();
-      navigate('/');
+      const telegramUser = getTelegramUser();
+      if (telegramUser) {
+        await login();
+        navigate('/');
+      } else {
+        alert('Не удалось получить данные пользователя из Telegram');
+      }
     } catch (error) {
       console.error('Login error:', error);
+      alert('Ошибка входа');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleGuestLogin = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Korean Chick
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Добро пожаловать в наш ресторан
-          </p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">
-              Вход в приложение
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Для входа в приложение необходимо авторизоваться через Telegram
-              </p>
-              
-              <Button
-                onClick={handleLogin}
-                loading={isLoading}
-                className="w-full"
-                size="lg"
-              >
-                {isLoading ? 'Вход...' : 'Войти через Telegram'}
-              </Button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-center">Вход в приложение</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isTelegramWebApp() ? (
+            <Button
+              onClick={handleTelegramLogin}
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? 'Вход...' : 'Войти через Telegram'}
+            </Button>
+          ) : (
+            <div className="text-center text-gray-600">
+              <p>Откройте приложение в Telegram</p>
             </div>
-
-            <div className="text-center">
-              <p className="text-xs text-gray-500">
-                Нажимая "Войти", вы соглашаетесь с условиями использования
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Если у вас возникли проблемы с входом, обратитесь в поддержку
-          </p>
-        </div>
-      </div>
+          )}
+          
+          <Button
+            onClick={handleGuestLogin}
+            variant="outline"
+            className="w-full"
+          >
+            Продолжить как гость
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 };
