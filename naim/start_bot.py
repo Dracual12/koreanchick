@@ -1,10 +1,16 @@
 from aiogram import types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.deep_linking import decode_payload
 from config import dp, bot, db
 from datetime import datetime
 from waiters import waiter_start as w_start
 import time
+import sys
+import os
+
+# Добавляем путь к корневой папке для импорта webapp_config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from webapp_config import get_webapp_url
 
 async def start_handler(message: types.Message):
     user = message.from_user.id
@@ -111,60 +117,42 @@ async def start_command(message: types.Message):
         else:
             await bot.send_message(chat_id=user, text="Вы не зарегистрированы как официант")
     elif db.check_users_user_exists(message.from_user.id):
-        if not db.get_users_ban(message.from_user.id):
-            try:
-                try:
-                    rest_name = decoded_args[4:]
-                    if "rest" in decoded_args:
-
-                        db.set_temp_users_filial(user, rest_name)
-                        if db.check_basket_exists(user):
-                            db.set_basket(user, "{}")
-                        else:
-                            db.create_basket(user)
-                        db.set_qr_scanned(user, True)
-                    else:
-                        db.set_client_temp_rest(user, None)
-                        if not db.check_basket_exists(user):
-                            db.create_basket(user)
-                        db.set_qr_scanned(user, False)
-                except Exception as e:
-                    print(e)
-
-                await start_handler(message)
-            except Exception as e:
-                print(e)
-        else:
-            await bot.send_message(
-                chat_id=user,
-                text="\n🚫 <b>Ваш аккаунт был временно заблокирован!</b>"
-                     "\n"
-                     "\n<i>Уважаемый пользователь,"
-                     "\nМы заметили некоторую подозрительную активность, связанную с вашей учетной записью, и в целях обеспечения безопасности мы временно приостановили доступ к вашему аккаунту.</i>"
-            )
-    else:
-        try:
-            if not db.check_client(user):
-                db.add_client(user, message.from_user.username)
-            db.set_qr_scanned(user, False)
-            rest_name = decoded_args[4:]
-            rest_address = db.restaurants_find_address(rest_name)
-            db.set_client_last_qr_time(user, round(time.time()))
-            if "rest" in decoded_args:
-                db.set_client_temp_rest(user, f"{rest_name}:{rest_address}:{int(time.time())}")
-                if db.check_basket_exists(user):
-                    db.set_basket(user, "{}")
-                else:
-                    db.create_basket(user)
-                db.set_qr_scanned(user, True)
-            else:
-                if not db.check_basket_exists(user):
-                    db.create_basket(user)
-                db.set_qr_scanned(user, False)
-        except Exception as e:
-            print(e)
-
+        # Пользователь уже существует, показываем стартовое меню
         await start_handler(message)
+    else:
+        # Новый пользователь, показываем стартовое меню
+        await start_handler(message)
+
+
+@dp.message_handler(commands=['webapp'])
+async def webapp_command(message: types.Message):
+    """Команда для открытия Web App"""
+    user = message.from_user.id
+    
+    webapp_url = get_webapp_url()
+    
+    text = ("<b>�� Откройте наше веб-приложение!</b>\n\n"
+            "В веб-приложении вы можете:\n"
+            "• 📱 Просматривать меню в удобном интерфейсе\n"
+            "• 🛒 Добавлять блюда в корзину\n"
+            "• 📋 Оформлять заказы с QR-кодом\n"
+            "• 📊 Просматривать историю заказов\n"
+            "• ⭐ Получать персональные рекомендации\n\n"
+            "Нажмите кнопку ниже, чтобы открыть приложение:")
+    
+    keyboard = InlineKeyboardMarkup()
+    webapp_button = InlineKeyboardButton(
+        text="🌐 Открыть Web App",
+        web_app=WebAppInfo(url=webapp_url)
+    )
+    keyboard.add(webapp_button)
+    
+    await bot.send_message(
+        chat_id=user,
+        text=text,
+        parse_mode='HTML',
+        reply_markup=keyboard
+    )
 
 
 def buttons_start_02():
@@ -176,7 +164,14 @@ def buttons_start_02():
     btn2 = InlineKeyboardButton(text="Доставка 🚘",
                                 callback_data="order_at_delivery")
 
+    # Добавляем кнопку Web App
+    btn3 = InlineKeyboardButton(
+        text="🌐 Веб-приложение",
+        web_app=WebAppInfo(url=get_webapp_url())
+    )
+
     menu.add(btn1)
     menu.add(btn2)
+    menu.add(btn3)
 
     return menu
